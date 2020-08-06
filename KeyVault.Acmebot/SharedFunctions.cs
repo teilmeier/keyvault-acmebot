@@ -56,27 +56,27 @@ namespace KeyVault.Acmebot
 
             var activity = context.CreateActivityProxy<ISharedFunctions>();
 
-            // 前提条件をチェック
+            // Check prerequisites
             await activity.Dns01Precondition(dnsNames);
 
-            // 新しく ACME Order を作成する
+            // Create a new ACME Order
             var orderDetails = await activity.Order(dnsNames);
 
-            // ACME Challenge を実行
+            // Run ACME Challenge
             var challengeResults = await activity.Dns01Authorization(orderDetails.Payload.Authorizations);
 
-            // DNS で正しくレコードが引けるか確認
+            // Verify that DNS can write records correctly
             await activity.CheckDnsChallenge(challengeResults);
 
-            // ACME Answer を実行
+            // Run ACME Answer
             await activity.AnswerChallenges(challengeResults);
 
-            // Order のステータスが ready になるまで 60 秒待機
+            // Wait 60 seconds for order status to ready
             await activity.CheckIsReady(orderDetails);
 
             var certificate = await activity.FinalizeOrder((dnsNames, orderDetails));
 
-            // 証明書の更新が完了後に Webhook を送信する
+            // Send a webhook after the certificate renewal is complete
             await activity.SendCompletedEvent((certificate.SecretIdentifier.Name, certificate.Attributes.Expires, dnsNames));
         }
 
